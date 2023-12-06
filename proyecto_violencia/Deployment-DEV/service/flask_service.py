@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 import numpy as np
-from model_loader import loaded_model_vgg16, loaded_model_cnn
+from model_loader import loaded_model_vgg16, loaded_model_cnn  # Asegúrate de importar los modelos correctos
 import cv2
 
 app = Flask(__name__)
@@ -23,7 +23,7 @@ def conv_feature_image(frames):
 
 def resize_zeros(img_features, max_frames):
     rows, cols = img_features.shape[:2]  # Obtener solo las dos primeras dimensiones
-    zero_matrix = np.zeros((max_frames - rows, cols, 3))  # Asegurarse de que img_features tiene 3 dimensiones
+    zero_matrix = np.zeros((max_frames - rows, cols))
     return np.concatenate((img_features, zero_matrix), axis=0)
 
 @app.route('/model/predict/', methods=['POST'])
@@ -41,17 +41,6 @@ def predict_video():
 
         # Hacer la predicción
         prediction = loaded_model_cnn.predict(np.array([img_features_resized]))
-
-        # Definir umbral de decisión
-        threshold = 0.5
-
-        # Mostrar resultado en la consola
-        if prediction[0] >= threshold:
-            print("El video es un situacion de violencia")
-        else:
-            print("El video no es violento")
-
-        # Crear respuesta JSON
         result = {"prediction": float(prediction[0])}
 
         return jsonify(result)
