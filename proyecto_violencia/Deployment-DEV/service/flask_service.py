@@ -1,4 +1,3 @@
-# Import Flask
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from tensorflow.keras.preprocessing import image
@@ -28,7 +27,7 @@ CORS(app)
 
 # Vars
 global loaded_model
-loaded_model = loadModelH5()
+loaded_model = loadModelH5()  # Esto debe cargar tu modelo personalizado CNN
 
 # Functions
 def allowed_file(filename):
@@ -55,7 +54,7 @@ def process_video(video_path):
     return img_features
 
 def conv_feature_image(frames):
-    conv_features = loaded_model.predict(np.array(frames))
+    conv_features = loaded_model.predict(np.array([frames]))  # Utiliza tu modelo CNN personalizado
     return np.array(conv_features)
 
 def resize_zeros(img_features, max_frames):
@@ -107,3 +106,4 @@ def predict_video():
 
 # Run the application
 app.run(host='0.0.0.0', port=port, threaded=False)
+
