@@ -72,8 +72,14 @@ def resize_zeros(img_features, max_frames):
         # Si img_features no tiene 3 dimensiones, establecer valores predeterminados
         rows, col = img_features.shape[0], img_features.shape[1]
 
-    zero_matrix = np.zeros((max_frames - rows, col, 3))  # Asegúrate de que el tamaño de la última dimensión sea 3
+    # Asegúrate de que el tamaño de la última dimensión sea 3
+    zero_matrix = np.zeros((max_frames - rows, col, 3)) if len(img_features.shape) == 3 else np.zeros((max_frames - rows, col))
+
+    # Asegúrate de que img_features tenga 3 dimensiones
+    img_features = img_features if len(img_features.shape) == 3 else np.expand_dims(img_features, axis=-1)
+
     return np.concatenate((img_features, zero_matrix), axis=0)
+
 
 
 # Ruta para clasificar videos
