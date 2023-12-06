@@ -5,8 +5,8 @@ from tensorflow.keras.models import load_model
 from werkzeug.utils import secure_filename
 import cv2
 import numpy as np
-# Importar la función loadModelH5 de model_loader.py
 from model_loader import loadModelH5
+
 # Args
 import argparse
 
@@ -30,6 +30,7 @@ CORS(app)
 # Variables globales
 # Carga el modelo utilizando la función importada
 loaded_model = loadModelH5()
+
 # Funciones
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -46,12 +47,15 @@ def read_video(path):
 
     return frames
 
-def conv_feature_image(frame):
-    resized_frame = cv2.resize(frame, (224, 224))
-    resized_frame = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB)
-    resized_frame = np.expand_dims(resized_frame, axis=0)
+def conv_feature_image(frames):
+    max_frames = 190
+    frames = frames[:max_frames]
+    
+    while len(frames) < max_frames:
+        frames.append(np.zeros((224, 224, 3)))
 
-    conv_features = loaded_model.predict(resized_frame)
+    conv_features = [loaded_model.predict(np.expand_dims(frame, axis=0))[0] for frame in frames]
+
     return np.array(conv_features)
 
 def resize_zeros(img_features, max_frames):
@@ -82,8 +86,8 @@ def predict_video():
 
             # Procesar video
             frames = read_video(tmpfile)
-            img_features = [conv_feature_image(frame) for frame in frames]
-            img_features = resize_zeros(np.array(img_features), 190)  # Asegúrate de que este número sea correcto
+            img_features = conv_feature_image(frames)
+            img_features = resize_zeros(img_features, 190)  # Asegúrate de que este número sea correcto
 
             # Predecir con el modelo cargado
             predictions = loaded_model.predict(np.array([img_features]))[0]
