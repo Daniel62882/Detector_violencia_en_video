@@ -27,16 +27,15 @@ ALLOWED_EXTENSIONS = set(['mp4'])
 app = Flask(__name__)
 CORS(app)
 
-
 # Cargar el modelo VGG16
-MODEL_VGG16_FILE = "violencia_model_full_tf2.h5"  # Reemplaza con el nombre de tu modelo VGG16
-MODEL_VGG16_PATH = "/home/dasniel298/models/model/tf3x/keras/full/"  # Reemplaza con la ruta a tu modelo VGG16
-loaded_model_vgg16 = loadModelH5(MODEL_VGG16_PATH, MODEL_VGG16_FILE)
+MODEL_VGG16_FILE = "violencia_model_full_tf2.h5"  
+MODEL_VGG16_PATH = "/home/dasniel298/models/model/tf3x/keras/full/"  
+loaded_model_vgg16 = load_model(MODEL_VGG16_PATH + MODEL_VGG16_FILE)
 
 # Cargar el modelo CNN
-MODEL_CNN_FILE = "violencia_model_full_tf2.h5"  # Reemplaza con el nombre de tu modelo CNN
-MODEL_CNN_PATH = "/home/dasniel298/models/model/tf2x/keras/full/"  # Reemplaza con la ruta a tu modelo CNN
-loaded_model_cnn = loadModelH5(MODEL_CNN_PATH, MODEL_CNN_FILE)
+MODEL_CNN_FILE = "violencia_model_full_tf2.h5"  
+MODEL_CNN_PATH = "/home/dasniel298/models/model/tf2x/keras/full/"  
+loaded_model_cnn = load_model(MODEL_CNN_PATH + MODEL_CNN_FILE)
 
 # Funciones
 def allowed_file(filename):
@@ -57,7 +56,7 @@ def read_video(path):
 def conv_feature_image(frames):
     max_frames = 190
     frames = frames[:max_frames]
-    
+
     while len(frames) < max_frames:
         frames.append(np.zeros((224, 224, 3)))
 
@@ -66,8 +65,8 @@ def conv_feature_image(frames):
     return np.array(conv_features)
 
 def resize_zeros(img_features, max_frames):
-    rows, col = img_features.shape
-    zero_matrix = np.zeros((max_frames - rows, col))
+    rows, col, _ = img_features.shape  # Asegúrate de que img_features tiene 3 dimensiones
+    zero_matrix = np.zeros((max_frames - rows, col, 3))  # Asegúrate de que el tamaño de la última dimensión sea 3
     return np.concatenate((img_features, zero_matrix), axis=0)
 
 # Ruta para clasificar videos
@@ -94,13 +93,13 @@ def predict_video():
             # Procesar video con modelo VGG16
             frames = read_video(tmpfile)
             img_features = conv_feature_image(frames)
-            img_features = resize_zeros(img_features, 190)  # Asegúrate de que este número sea correcto
+            img_features = resize_zeros(img_features, 190)
 
             # Predecir con el modelo VGG16 cargado
             predictions_vgg16 = loaded_model_vgg16.predict(np.array([img_features]))[0]
-            
+
             # Procesar video con modelo CNN
-            img_features_cnn = resize_zeros(img_features, 190)  # Asegúrate de que este número sea correcto
+            img_features_cnn = resize_zeros(img_features, 190)
 
             # Predecir con el modelo CNN cargado
             predictions_cnn = loaded_model_cnn.predict(np.array([img_features_cnn]))[0]
@@ -120,9 +119,7 @@ def predict_video():
 
     return jsonify(data)
 
-# Resto de tu código Flask...
-
-# Ejecutar la aplicación
+# Ejecutar la aplicación Flask
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=port, threaded=False)
+    app.run(host='0.0.0.0', port=port)
 
