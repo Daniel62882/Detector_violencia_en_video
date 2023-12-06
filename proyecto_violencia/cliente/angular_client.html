@@ -1,174 +1,126 @@
 <!DOCTYPE html>
-<html lang="en" ng-app="myApp" ng-cloak bgcolor="black" ng-controller="myCtrl" layout="column">
+<html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Video Classifier</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic">
-  <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.4/angular-material.min.css">
+  <title>Video Violence Detector</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css"
+    integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
   <style>
-    body {
-      background-color: #f0f0f0; /* Color de fondo */
-      font-family: 'Roboto', sans-serif;
+    html, body {
+      min-height: 100%;
     }
 
-    md-toolbar {
-      background-color: #2196F3; /* Color de la barra de herramientas */
-      color: white;
+    body, div, form, input, select, p {
+      padding: 0;
+      margin: 0;
+      outline: none;
+      font-family: Roboto, Arial, sans-serif;
+      font-size: 14px;
+      color: #666;
+      line-height: 22px;
     }
 
-    md-card {
-      background-color: white;
-      margin-bottom: 20px;
-      padding: 16px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra de la tarjeta */
+    h1 {
+      position: absolute;
+      margin: 0;
+      font-size: 38px;
+      color: #000;
+      z-index: 2;
     }
 
-    #video {
-      max-width: 100%;
-      border: 2px solid #ccc; /* Borde del video */
-      box-shadow: 5px 5px 5px #888888; /* Sombra del video */
-      margin-bottom: 16px;
+    p.top-info {
+      margin: 10px 0;
     }
 
-    md-button {
-      background-color: #4CAF50; /* Color del botón */
-      color: white;
-      margin-top: 16px;
+    .testbox {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: inherit;
+      padding: 20px;
     }
 
-    #resultadosdiv {
+    form {
+      width: 90%;
+      padding: 20px;
+      border-radius: 6px;
+      background: #fff;
+      box-shadow: 0 0 25px 0 #1c87c9;
+    }
+
+    .banner {
+      position: relative;
+      height: 100px;
+      background-image: url("/uploads/media/default/0001/02/fb57ab781c34da322c884532bfec751e843e36fc.jpeg");
+      background-size: cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       text-align: center;
+    }
+
+    .banner::after {
+      content: "";
+      background-color: rgba(0, 0, 0, 0.6);
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+
+    input, select, textarea {
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+
+    input {
+      width: calc(100% - 10px);
+      padding: 5px;
+    }
+
+    .item {
+      position: relative;
+      margin: 10px 0;
+    }
+
+    .btn-block {
       margin-top: 10px;
+      text-align: center;
     }
 
-    #resultadosdiv span {
-      font-weight: bold;
-      color: #2196F3; /* Color del texto resaltado */
+    button {
+      width: auto;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      background: #1c87c9;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
     }
 
-    .loading-image {
-      width: 50px;
-      height: 50px;
+    button:hover {
+      background: #1e6fa0;
     }
   </style>
 </head>
+
 <body>
-  <md-toolbar>
-    <div class="md-toolbar-tools">
-      <span>Video Classifier</span>
-    </div>
-  </md-toolbar>
+  <div class="banner">
+    <h1>Video Violence Detector</h1>
+    <p class="top-info">Please choose a video to predict:</p>
+  </div>
 
-  <form name="myForm">
-    <md-card>
-      <md-card-content>
-        <div layout="column" layout-align="center">
-          <span style="font-weight:bold;font-size:13">Video to classify:</span>
-          <input type="file" name="file" ng-model="cn" class="form-control" onchange="loadFile(event)" accept=".mp4" style="font-size:13">
-        </div>
-
-        <div layout="column" layout-align="center">
-          <video id="video" controls></video>
-        </div>
-      </md-card-content>
-
-      <md-card-actions layout="row" layout-align="end center">
-        <md-button ng-click="submit()">Classify</md-button>
-      </md-card-actions>
-    </md-card>
-  </form>
-
-  <md-card>
-    <md-card-content>
-      <div id="resultadosdiv">
-        <div ng-show="success">
-          <span>Predicted Label: <span style="color: #2196F3;">{{ predictions[0].label }}</span></span>
-          <span>(Score: {{ predictions[0].score }})</span>
-        </div>
-        <div ng-show="error">
-          <span style="color:red;font-weight:bold">Error!</span>
-        </div>
-        <div ng-show="loading">
-          <img class="loading-image" src="https://images2.tcdn.com.br/commerce/assets/store/img//loading.gif" alt="Processing">
-        </div>
+  <div class="testbox" align="center">
+    <form action="http://34.125.85.109:5000/model/predict/" enctype="multipart/form-data" method="post">
+      <input name="file" type="file" accept=".mp4">
+      <div class="btn-block">
+        <button type="submit">Detect Violence</button>
       </div>
-    </md-card-content>
-  </md-card>
-
-  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular.js"></script>
-  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular-aria.js"></script>
-  <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.4/angular-material.min.js"></script>
-  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular-animate.js"></script>
-  <script>
-    var loadFile = function(event) {
-      var output = document.getElementById('video');
-      output.src = URL.createObjectURL(event.target.files[0]);
-      var x = document.getElementById("resultadosdiv");
-      x.style.display = "none";
-    };
-  </script>
-  <script>
-    var app = angular.module('myApp', ['ngMaterial']);
-
-    app.config(['$interpolateProvider', function($interpolateProvider) {
-      $interpolateProvider.startSymbol('{{');
-      $interpolateProvider.endSymbol('}}');
-    }]);
-
-    app.config(function($mdThemingProvider) {
-      $mdThemingProvider.theme('default')
-        .primaryPalette('blue-grey')
-        .accentPalette('orange');
-    });
-  
-    app.controller('myCtrl', ['$scope', '$http',
-      function($scope, $http) {
-        $scope.rp = "http://<ip>:9000";
-        $scope.loading = false;
-        $scope.success = false;
-        $scope.error = false;
-  
-        console.log("Loading ...");
-        console.log("Developed by Mirko J. Rodriguez");
-  
-        $scope.submit = function() {
-          var x = document.getElementById("resultadosdiv");
-          x.style.display = "block";
-          $scope.loading = true;
-          $scope.success = false;
-          $scope.error = false;
-  
-          var myform = document.forms['myForm'];
-          var formData = new FormData(myform);
-          console.log(myform)
-  
-          URI_final = $scope.rp + "/video/predict/";
-          console.log(URI_final);
-          console.log("Calling ...");
-          $http({
-            method : 'POST',
-            url : URI_final,
-            headers: {
-              'Content-Type': undefined
-            },
-            data: formData
-          }).success(function(data, status, headers, config) {
-            $scope.predictions = data.predictions;
-            console.log(data.predictions);
-            $scope.loading = false;
-            $scope.success = true;
-            $scope.error = false;
-          }).error(function(data, status, headers, config) {
-            $scope.loading = false;
-            $scope.success = false;
-            $scope.error = true;
-          });
-        }
-  
-        console.log("Loaded!");
-      }
-    ]);
-  </script>
+    </form>
+  </div>
 </body>
+
 </html>

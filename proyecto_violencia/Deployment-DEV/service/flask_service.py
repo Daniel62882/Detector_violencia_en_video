@@ -1,6 +1,5 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import numpy as np
-from model_loader import loaded_model_vgg16, loaded_model_cnn  # Asegúrate de importar los modelos correctos
 import cv2
 
 app = Flask(__name__)
@@ -18,13 +17,17 @@ def read_video(path):
     return frames
 
 def conv_feature_image(frames):
-    conv_features = loaded_model_vgg16.predict(np.array(frames))
-    return np.array(conv_features)
+    # Simulando una predicción
+    return np.random.rand(len(frames))
 
 def resize_zeros(img_features, max_frames):
-    rows, cols = img_features.shape[:2]  # Obtener solo las dos primeras dimensiones
-    zero_matrix = np.zeros((max_frames - rows, cols))
+    rows, cols = img_features.shape[:2]
+    zero_matrix = np.zeros((max_frames - rows, cols, 3))
     return np.concatenate((img_features, zero_matrix), axis=0)
+
+def format_result(prediction):
+    # Formatear el resultado con un estilo
+    return f"<table style='border: 2px solid #1c87c9; border-radius: 10px; padding: 10px; margin: 20px auto; max-width: 400px;'><tr><td>Prediction:</td><td style='color: {'red' if prediction >= 0.5 else 'green'};'>{prediction}</td></tr></table>"
 
 @app.route('/model/predict/', methods=['POST'])
 def predict_video():
@@ -34,25 +37,18 @@ def predict_video():
         video_path = "uploads/videos/" + video_file.filename
         video_file.save(video_path)
 
-        # Procesar el video
+        # Procesar el video (simulando una predicción)
         frames = read_video(video_path)
         img_features = conv_feature_image(frames)
         img_features_resized = resize_zeros(img_features, 190)
 
-        # Definir umbral de decisión
-        threshold = 0.5
-        
-        # Hacer la predicción
-        prediction = loaded_model_cnn.predict(np.array([img_features_resized]))
-        
-         # Clasificar la predicción
-        label = "violencia" if prediction >= threshold else "no_violento"
+        # Hacer la predicción (simulando una predicción)
+        prediction = np.random.rand()
 
-        # Crear respuesta JSON
-        response = {"prediction": float(prediction), "label": label}
+        # Crear respuesta HTML con estilo
+        result_html = format_result(prediction)
 
-
-        return jsonify(response)
+        return result_html
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
