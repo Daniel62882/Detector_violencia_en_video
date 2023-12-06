@@ -44,26 +44,23 @@ def read_video(path):
         frames.append(cv2.resize(image, (224, 224)))
         success, image = vidcap.read()
 
-    # Truncate or pad the dataset to 190 frames
-    frames = frames[:190] + [np.zeros((224, 224, 3))] * max(0, 190 - len(frames))
-
     return frames
 
 max_frames = 190
 
 def process_video(video_path):
     frames = read_video(video_path)
-    img_features = conv_feature_image(frames)
+    img_features = np.array([conv_feature_image(frame) for frame in frames])
     img_features = resize_zeros(img_features, max_frames)
     return img_features
 
-def conv_feature_image(frames):
-    conv_features = loaded_model.predict(np.array([frames]))
+def conv_feature_image(frame):
+    conv_features = loaded_model.predict(np.array([frame]))
     return np.array(conv_features)
 
 def resize_zeros(img_features, max_frames):
-    rows, col = img_features.shape
-    zero_matrix = np.zeros((max_frames - rows, col))
+    rows, col, _ = img_features.shape  # Obtener la tercera dimensión (canales)
+    zero_matrix = np.zeros((max_frames - rows, col, 25088))
     return np.concatenate((img_features, zero_matrix), axis=0)
 
 # Ruta para clasificar videos
