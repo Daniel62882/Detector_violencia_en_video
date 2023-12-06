@@ -1,5 +1,6 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, render_template
 import numpy as np
+from model_loader import loaded_model_vgg16, loaded_model_cnn
 import cv2
 
 app = Flask(__name__)
@@ -17,41 +18,67 @@ def read_video(path):
     return frames
 
 def conv_feature_image(frames):
-    # Simulando una predicción
-    return np.random.rand(len(frames))
+    conv_features = loaded_model_vgg16.predict(np.array(frames))
+    return np.array(conv_features)
 
 def resize_zeros(img_features, max_frames):
     rows, cols = img_features.shape[:2]
     zero_matrix = np.zeros((max_frames - rows, cols, 3))
     return np.concatenate((img_features, zero_matrix), axis=0)
 
-def format_result(prediction):
-    # Formatear el resultado con un estilo
-    return f"<table style='border: 2px solid #1c87c9; border-radius: 10px; padding: 10px; margin: 20px auto; max-width: 400px;'><tr><td>Prediction:</td><td style='color: {'red' if prediction >= 0.5 else 'green'};'>{prediction}</td></tr></table>"
-
 @app.route('/model/predict/', methods=['POST'])
 def predict_video():
     try:
-        # Obtener el archivo de video desde la solicitud
         video_file = request.files['file']
         video_path = "uploads/videos/" + video_file.filename
         video_file.save(video_path)
 
-        # Procesar el video (simulando una predicción)
         frames = read_video(video_path)
         img_features = conv_feature_image(frames)
         img_features_resized = resize_zeros(img_features, 190)
 
-        # Hacer la predicción (simulando una predicción)
-        prediction = np.random.rand()
+        prediction = loaded_model_cnn.predict(np.array([img_features_resized]))
 
-        # Crear respuesta HTML con estilo
-        result_html = format_result(prediction)
+        threshold = 0.5
+
+        result_html = """
+        <html>
+        <head>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    background-color: #f4f4f4;
+                    margin: 20px;
+                }
+                .result-box {
+                    padding: 20px;
+                    background-color: #fff;
+                    border-radius: 10px;
+                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                    text-align: center;
+                }
+                .violent {
+                    color: #FF0000;
+                }
+                .non-violent {
+                    color: #00FF00;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="result-box">
+                <h2>Resultado de la predicción</h2>
+                <p>Confianza: {:.2%}</p>
+                <p class="{}">{}</p>
+            </div>
+        </body>
+        </html>
+        """.format(prediction[0], 'violent' if prediction[0] >= threshold else 'non-violent', 'El video es violento' if prediction[0] >= threshold else 'El video no es violento')
 
         return result_html
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return str(e), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
