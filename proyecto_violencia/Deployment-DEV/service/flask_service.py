@@ -27,14 +27,15 @@ ALLOWED_EXTENSIONS = set(['mp4'])
 app = Flask(__name__)
 CORS(app)
 
-# Variables globales
-# Cargar el modelo VGG16 y el modelo CNN utilizando la función importada
-MODEL_VGG16_FILE = "tu_modelo_vgg16.h5"  # Reemplaza con el nombre de tu modelo VGG16
-MODEL_VGG16_PATH = "/ruta/donde/esta/tu/modelo/"  # Reemplaza con la ruta a tu modelo VGG16
+
+# Cargar el modelo VGG16
+MODEL_VGG16_FILE = "violencia_model_full_tf2.h5"  # Reemplaza con el nombre de tu modelo VGG16
+MODEL_VGG16_PATH = "/home/dasniel298/models/model/tf3x/keras/full/"  # Reemplaza con la ruta a tu modelo VGG16
 loaded_model_vgg16 = loadModelH5(MODEL_VGG16_PATH, MODEL_VGG16_FILE)
 
-MODEL_CNN_FILE = "tu_modelo_cnn.h5"  # Reemplaza con el nombre de tu modelo CNN
-MODEL_CNN_PATH = "/ruta/donde/esta/tu/modelo/"  # Reemplaza con la ruta a tu modelo CNN
+# Cargar el modelo CNN
+MODEL_CNN_FILE = "violencia_model_full_tf2.h5"  # Reemplaza con el nombre de tu modelo CNN
+MODEL_CNN_PATH = "/home/dasniel298/models/model/tf2x/keras/full/"  # Reemplaza con la ruta a tu modelo CNN
 loaded_model_cnn = loadModelH5(MODEL_CNN_PATH, MODEL_CNN_FILE)
 
 # Funciones
