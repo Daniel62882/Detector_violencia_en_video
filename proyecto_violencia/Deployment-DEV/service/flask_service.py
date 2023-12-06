@@ -5,7 +5,8 @@ from tensorflow.keras.models import load_model
 from werkzeug.utils import secure_filename
 import cv2
 import numpy as np
-
+# Importar la función loadModelH5 de model_loader.py
+from model_loader import loadModelH5
 # Args
 import argparse
 
@@ -27,9 +28,8 @@ app = Flask(__name__)
 CORS(app)
 
 # Variables globales
-global loaded_model
-loaded_model = load_model("ruta_del_modelo")  # Reemplazar con la ruta real de tu modelo
-
+# Carga el modelo utilizando la función importada
+loaded_model = loadModelH5()
 # Funciones
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
