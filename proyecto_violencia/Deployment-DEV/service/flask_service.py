@@ -28,8 +28,14 @@ app = Flask(__name__)
 CORS(app)
 
 # Variables globales
-# Carga el modelo utilizando la función importada
-loaded_model = loadModelH5()
+# Cargar el modelo VGG16 y el modelo CNN utilizando la función importada
+MODEL_VGG16_FILE = "tu_modelo_vgg16.h5"  # Reemplaza con el nombre de tu modelo VGG16
+MODEL_VGG16_PATH = "/ruta/donde/esta/tu/modelo/"  # Reemplaza con la ruta a tu modelo VGG16
+loaded_model_vgg16 = loadModelH5(MODEL_VGG16_PATH, MODEL_VGG16_FILE)
+
+MODEL_CNN_FILE = "tu_modelo_cnn.h5"  # Reemplaza con el nombre de tu modelo CNN
+MODEL_CNN_PATH = "/ruta/donde/esta/tu/modelo/"  # Reemplaza con la ruta a tu modelo CNN
+loaded_model_cnn = loadModelH5(MODEL_CNN_PATH, MODEL_CNN_FILE)
 
 # Funciones
 def allowed_file(filename):
@@ -54,7 +60,7 @@ def conv_feature_image(frames):
     while len(frames) < max_frames:
         frames.append(np.zeros((224, 224, 3)))
 
-    conv_features = [loaded_model.predict(np.expand_dims(frame, axis=0))[0] for frame in frames]
+    conv_features = [loaded_model_vgg16.predict(np.expand_dims(frame, axis=0))[0] for frame in frames]
 
     return np.array(conv_features)
 
@@ -84,21 +90,29 @@ def predict_video():
             file.save(tmpfile)
             print("\nNombre de archivo almacenado:", tmpfile)
 
-            # Procesar video
+            # Procesar video con modelo VGG16
             frames = read_video(tmpfile)
             img_features = conv_feature_image(frames)
             img_features = resize_zeros(img_features, 190)  # Asegúrate de que este número sea correcto
 
-            # Predecir con el modelo cargado
-            predictions = loaded_model.predict(np.array([img_features]))[0]
-            class_pred = "violencia" if predictions >= 0.5 else "no-violencia"
-            class_prob = float(predictions)
+            # Predecir con el modelo VGG16 cargado
+            predictions_vgg16 = loaded_model_vgg16.predict(np.array([img_features]))[0]
+            
+            # Procesar video con modelo CNN
+            img_features_cnn = resize_zeros(img_features, 190)  # Asegúrate de que este número sea correcto
 
-            print("Etiqueta de predicción:", class_pred)
+            # Predecir con el modelo CNN cargado
+            predictions_cnn = loaded_model_cnn.predict(np.array([img_features_cnn]))[0]
+
+            # Tomar la decisión final basada en ambas predicciones
+            overall_prediction = "violencia" if predictions_cnn >= 0.5 else "no-violencia"
+            class_prob = float(predictions_cnn)
+
+            print("Etiqueta de predicción:", overall_prediction)
             print("Probabilidad de predicción: {:.2%}".format(class_prob))
 
             # Resultados en formato Json
-            data["predictions"] = [{"label": class_pred, "score": class_prob}]
+            data["predictions"] = [{"label": overall_prediction, "score": class_prob}]
 
             # Éxito
             data["success"] = True
@@ -110,5 +124,4 @@ def predict_video():
 # Ejecutar la aplicación
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=port, threaded=False)
-
 
