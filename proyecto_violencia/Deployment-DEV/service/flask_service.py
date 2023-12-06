@@ -46,6 +46,8 @@ def read_video(path):
 
     return frames
 
+max_frames = 190
+
 def process_video(video_path):
     frames = read_video(video_path)
     img_features = conv_feature_image(frames)
@@ -62,7 +64,7 @@ def resize_zeros(img_features, max_frames):
     return np.concatenate((img_features, zero_matrix), axis=0)
 
 # Ruta para clasificar videos
-@app.route('/video/predict/', methods=['POST'])
+@app.route('/model/predict/', methods=['POST'])
 def predict_video():
     data = {"success": False}
     if request.method == "POST":
