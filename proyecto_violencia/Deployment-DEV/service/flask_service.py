@@ -1,36 +1,36 @@
-# Import Flask
+# Importar las bibliotecas necesarias
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from tensorflow.keras.preprocessing import image
-import numpy as np
+from tensorflow.keras.models import load_model
 from werkzeug.utils import secure_filename
 import cv2
-from model_loader import loadModelH5
+import numpy as np
 
 # Args
 import argparse
 
+# Configurar los argumentos del programa
 ap = argparse.ArgumentParser()
-ap.add_argument("-p", "--port", required=True, help="Service PORT number is required.")
+ap.add_argument("-p", "--port", required=True, help="Número de puerto del servicio.")
 args = vars(ap.parse_args())
 
-# Service port
+# Puerto del servicio
 port = args['port']
-print("Port recognized: ", port)
+print("Puerto reconocido:", port)
 
-# Params
+# Parámetros
 UPLOAD_FOLDER = 'uploads/videos'
 ALLOWED_EXTENSIONS = set(['mp4'])
 
-# Initialize the application service (FLASK)
+# Inicializar la aplicación Flask
 app = Flask(__name__)
 CORS(app)
 
-# Vars
+# Variables globales
 global loaded_model
-loaded_model = loadModelH5()
+loaded_model = load_model("ruta_del_modelo")  # Reemplazar con la ruta real de tu modelo
 
-# Functions
+# Funciones
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -46,21 +46,17 @@ def read_video(path):
 
     return frames
 
-max_frames = 190
-
-def process_video(video_path):
-    frames = read_video(video_path)
-    img_features = np.array([conv_feature_image(frame) for frame in frames])
-    img_features = resize_zeros(img_features, max_frames)
-    return img_features
-
 def conv_feature_image(frame):
-    conv_features = loaded_model.predict(np.array([frame]))
+    resized_frame = cv2.resize(frame, (224, 224))
+    resized_frame = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB)
+    resized_frame = np.expand_dims(resized_frame, axis=0)
+
+    conv_features = loaded_model.predict(resized_frame)
     return np.array(conv_features)
 
 def resize_zeros(img_features, max_frames):
-    rows, col, _ = img_features.shape  # Obtener la tercera dimensión (canales)
-    zero_matrix = np.zeros((max_frames - rows, col, 25088))
+    rows, col = img_features.shape
+    zero_matrix = np.zeros((max_frames - rows, col))
     return np.concatenate((img_features, zero_matrix), axis=0)
 
 # Ruta para clasificar videos
@@ -68,44 +64,47 @@ def resize_zeros(img_features, max_frames):
 def predict_video():
     data = {"success": False}
     if request.method == "POST":
-        # check if the post request has the file part
         if 'file' not in request.files:
-            print('No file part')
+            print('No se recibió el archivo')
             return jsonify(data)
 
         file = request.files['file']
-        # if user does not select file, browser also submits an empty part without filename
         if file.filename == '':
-            print('No selected file')
+            print('No se seleccionó ningún archivo')
             return jsonify(data)
 
         if file and allowed_file(file.filename):
-            print("\nFilename received:", file.filename)
+            print("\nNombre de archivo recibido:", file.filename)
             filename = secure_filename(file.filename)
             tmpfile = ''.join([UPLOAD_FOLDER, '/', filename])
             file.save(tmpfile)
-            print("\nFilename stored:", tmpfile)
+            print("\nNombre de archivo almacenado:", tmpfile)
 
-            # processing video
-            video_features = process_video(tmpfile)
+            # Procesar video
+            frames = read_video(tmpfile)
+            img_features = [conv_feature_image(frame) for frame in frames]
+            img_features = resize_zeros(np.array(img_features), 190)  # Asegúrate de que este número sea correcto
 
-            # predicting using the loaded model
-            predictions = loaded_model.predict(np.array([video_features]))[0]
-            class_pred = "violence" if predictions >= 0.5 else "non-violence"
+            # Predecir con el modelo cargado
+            predictions = loaded_model.predict(np.array([img_features]))[0]
+            class_pred = "violencia" if predictions >= 0.5 else "no-violencia"
             class_prob = float(predictions)
 
-            print("Prediction Label:", class_pred)
-            print("Prediction Prob: {:.2%}".format(class_prob))
+            print("Etiqueta de predicción:", class_pred)
+            print("Probabilidad de predicción: {:.2%}".format(class_prob))
 
-            # Results as Json
+            # Resultados en formato Json
             data["predictions"] = [{"label": class_pred, "score": class_prob}]
 
-            # Success
+            # Éxito
             data["success"] = True
 
     return jsonify(data)
 
-# Run the application
-app.run(host='0.0.0.0', port=port, threaded=False)
+# Resto de tu código Flask...
+
+# Ejecutar la aplicación
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=port, threaded=False)
 
 
