@@ -38,12 +38,19 @@ def predict_video():
         frames = read_video(video_path)
         img_features = conv_feature_image(frames)
         img_features_resized = resize_zeros(img_features, 190)
+        
+        # Definir umbral de decisión
+        threshold = 0.5
+
 
         # Hacer la predicción
         prediction = loaded_model_cnn.predict(np.array([img_features_resized]))
-        result = {"prediction": float(prediction[0])}
+        response = {"prediction": float(prediction[0])}
+        
+         # Clasificar la predicción
+        response["label"] = "violencia" if prediction >= threshold else "no_violento"
 
-        return jsonify(result)
+        return jsonify(response)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
