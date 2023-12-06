@@ -65,9 +65,16 @@ def conv_feature_image(frames):
     return np.array(conv_features)
 
 def resize_zeros(img_features, max_frames):
-    rows, col, _ = img_features.shape  # Asegúrate de que img_features tiene 3 dimensiones
+    # Verificar si img_features tiene 3 dimensiones
+    if len(img_features.shape) == 3:
+        rows, col, _ = img_features.shape
+    else:
+        # Si img_features no tiene 3 dimensiones, establecer valores predeterminados
+        rows, col = img_features.shape[0], img_features.shape[1]
+
     zero_matrix = np.zeros((max_frames - rows, col, 3))  # Asegúrate de que el tamaño de la última dimensión sea 3
     return np.concatenate((img_features, zero_matrix), axis=0)
+
 
 # Ruta para clasificar videos
 @app.route('/model/predict/', methods=['POST'])
