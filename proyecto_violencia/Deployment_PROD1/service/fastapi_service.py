@@ -66,12 +66,15 @@ async def predict(file: UploadFile = File(...)):
         # Obtener la predicción del resultado
         predictions = response.json()['predictions']
 
+        # Obtener la probabilidad de violencia (por ejemplo, si la respuesta es una lista)
+        probability_of_violence = predictions[0] if isinstance(predictions, list) else predictions
+
         # Definir umbral de decisión
         threshold = 0.5
 
         # Clasificar la predicción
-        label = "violencia" if predictions[0] >= threshold else "no_violento"
-        score = float(predictions[0])
+        label = "violencia" if probability_of_violence >= threshold else "no_violento"
+        score = float(probability_of_violence)
 
         response_data = {"prediction": score, "label": label}
 
