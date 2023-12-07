@@ -66,18 +66,26 @@ async def predict(file: UploadFile = File(...)):
         predictions = response.json().get('predictions', None)
 
         if predictions is not None:
-            # Obtener la probabilidad de violencia
-            probability_of_violence = predictions[0][0] if isinstance(predictions, list) else predictions[0]
+            # Manejar diferentes formatos de respuesta
+            if isinstance(predictions, list):
+                # Si la respuesta es una lista
+                probability_of_violence = predictions[0][0] if predictions else None
+            else:
+                # Si la respuesta es un solo valor
+                probability_of_violence = predictions[0] if predictions else None
 
-            # Definir umbral de decisión
-            threshold = 0.5
+            if probability_of_violence is not None:
+                # Definir umbral de decisión
+                threshold = 0.5
 
-            # Clasificar la predicción
-            #label = "violencia" if probability_of_violence >= threshold else "no_violento"
-            score = float(probability_of_violence)
+                # Clasificar la predicción
+                label = "violencia" if probability_of_violence >= threshold else "no_violento"
+                score = float(probability_of_violence)
 
-            response_data = {"prediction": score}
-            return JSONResponse(content=response_data, status_code=200)
+                response_data = {"prediction": score, "label": label}
+                return JSONResponse(content=response_data, status_code=200)
+            else:
+                raise ValueError("La respuesta de TensorFlow Serving no contiene valores válidos.")
         else:
             raise ValueError("La respuesta de TensorFlow Serving no contiene 'predictions'.")
 
