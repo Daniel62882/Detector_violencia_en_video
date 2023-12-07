@@ -5,6 +5,7 @@ from tensorflow.keras.preprocessing import image
 import requests
 import cv2
 import numpy as np
+import json  # Agregado import de json
 from model_loader import loaded_model_vgg16, loaded_model_cnn
 
 app = FastAPI()
@@ -30,18 +31,16 @@ def conv_feature_image(frames):
 
 def resize_zeros(img_features, max_frames):
     rows, cols = img_features.shape[:2]
-    zero_matrix = np.zeros((max_frames - rows, cols))
+    zero_matrix = np.zeros((max_frames - rows, cols, 3))  # Asegúrate de que la tercera dimensión sea 3 para canales RGB
     return np.concatenate((img_features, zero_matrix), axis=0)
 
 def predict_via_HTTP(video_to_predict, model_name, model_version, port):
     frames = read_video(video_to_predict)
     img_features = conv_feature_image(frames)
-    img_features_resized = resize_zeros(img_features, 190)
+    img_features_resized = resize_zeros(img_features, max_frames=190)  # Asegúrate de que max_frames coincida con lo que espera el modelo
 
     # Model parameters and prediction via HTTP logic here
-    test_image = image.array_to_img(img_features_resized[0])
-    test_image = image.img_to_array(test_image)
-    test_image = np.expand_dims(test_image, axis=0)
+    test_image = np.expand_dims(img_features_resized[0], axis=0)  # Asegúrate de que cada cuadro tenga la forma correcta
     test_image = test_image.astype('float32')
 
     data = json.dumps({"signature_name": "serving_default", "instances": test_image.tolist()})
@@ -72,7 +71,7 @@ async def predict(file: UploadFile = File(...)):
 
         # Process results
         index = np.argmax(predictions)
-        classes = [0,1]  # Adjust according to your model classes
+        classes = [0, 1]  # Adjust according to your model classes
         label = classes[index]
         score = predictions[index]
 
