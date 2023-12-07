@@ -5,7 +5,7 @@ import numpy as np
 import cv2
 import requests
 import json
-from model_loader import loaded_model_vgg16, loaded_model_cnn 
+from model_loader import loaded_model_vgg16, loaded_model_cnn
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=['*'])
@@ -21,7 +21,6 @@ def read_video(path):
         success, image = vidcap.read()
 
     return frames
-
 
 def conv_feature_image(frames):
     conv_features = loaded_model_vgg16.predict(np.array(frames))
@@ -57,28 +56,30 @@ async def predict(file: UploadFile = File(...)):
         # Enviar solicitud a TensorFlow Serving
         model_name = 'violencia'  # Reemplaza con el nombre de tu modelo
         model_version = '1'  # Reemplaza con la versión de tu modelo
-        port = '9501'  # Reemplaza con el puerto de tu servidor TensorFlow Serving
+        port = '8501'  # Reemplaza con el puerto de tu servidor TensorFlow Serving
 
         uri = f'http://127.0.0.1:{port}/v{model_version}/models/{model_name}:predict'
         headers = {"content-type": "application/json"}
         response = requests.post(uri, data=frames_json, headers=headers)
 
         # Obtener la predicción del resultado
-        predictions = response.json()['predictions']
+        predictions = response.json().get('predictions', None)
 
-        # Obtener la probabilidad de violencia (por ejemplo, si la respuesta es una lista)
-        probability_of_violence = predictions[0] if isinstance(predictions, list) else predictions
+        if predictions is not None:
+            # Obtener la probabilidad de violencia
+            probability_of_violence = predictions[0] if isinstance(predictions, list) else predictions
 
-        # Definir umbral de decisión
-        threshold = 0.5
+            # Definir umbral de decisión
+            threshold = 0.5
 
-        # Clasificar la predicción
-        label = "violencia" if probability_of_violence >= threshold else "no_violento"
-        score = float(probability_of_violence)
+            # Clasificar la predicción
+            label = "violencia" if probability_of_violence >= threshold else "no_violento"
+            score = float(probability_of_violence)
 
-        response_data = {"prediction": score, "label": label}
-
-        return JSONResponse(content=response_data, status_code=200)
+            response_data = {"prediction": score, "label": label}
+            return JSONResponse(content=response_data, status_code=200)
+        else:
+            raise ValueError("La respuesta de TensorFlow Serving no contiene 'predictions'.")
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
