@@ -56,7 +56,7 @@ async def predict(file: UploadFile = File(...)):
         # Enviar solicitud a TensorFlow Serving
         model_name = 'violencia'  # Reemplaza con el nombre de tu modelo
         model_version = '1'  # Reemplaza con la versión de tu modelo
-        port = '9501'  # Reemplaza con el puerto de tu servidor TensorFlow Serving
+        port = '8501'  # Reemplaza con el puerto de tu servidor TensorFlow Serving
 
         uri = f'http://127.0.0.1:{port}/v{model_version}/models/{model_name}:predict'
         headers = {"content-type": "application/json"}
@@ -67,16 +67,16 @@ async def predict(file: UploadFile = File(...)):
 
         if predictions is not None:
             # Obtener la probabilidad de violencia
-            probability_of_violence = predictions[0] if isinstance(predictions, list) else predictions
+            probability_of_violence = predictions[0][0] if isinstance(predictions, list) else predictions[0]
 
             # Definir umbral de decisión
             threshold = 0.5
 
             # Clasificar la predicción
-            label = "violencia" if probability_of_violence >= threshold else "no_violento"
+            #label = "violencia" if probability_of_violence >= threshold else "no_violento"
             score = float(probability_of_violence)
 
-            response_data = {"prediction": score, "label": label}
+            response_data = {"prediction": score}
             return JSONResponse(content=response_data, status_code=200)
         else:
             raise ValueError("La respuesta de TensorFlow Serving no contiene 'predictions'.")
