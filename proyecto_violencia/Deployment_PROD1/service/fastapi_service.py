@@ -1,86 +1,81 @@
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
-from tensorflow.keras.preprocessing import image
-import requests
-import cv2
 import numpy as np
-import json  # Agregado import de json
-from model_loader import loaded_model_vgg16, loaded_model_cnn
+import cv2
+import requests
+import json
+from model_loader import loaded_model_vgg16, loaded_model_cnn 
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=['*'])
 
-UPLOAD_FOLDER = 'uploads/videos'
-
 def read_video(path):
     frames = []
     vidcap = cv2.VideoCapture(path)
-    success, img = vidcap.read()
+    success, image = vidcap.read()
 
     while success:
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        frames.append(cv2.resize(img, (224, 224)))
-        success, img = vidcap.read()
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        frames.append(cv2.resize(image, (224, 224)))
+        success, image = vidcap.read()
 
     return frames
+
 
 def conv_feature_image(frames):
     conv_features = loaded_model_vgg16.predict(np.array(frames))
     return np.array(conv_features)
 
+def convert_frames_to_json(frames):
+    return json.dumps({"signature_name": "serving_default", "instances": frames.tolist()})
+
 def resize_zeros(img_features, max_frames):
     rows, cols = img_features.shape[:2]
-    zero_matrix = np.zeros((max_frames - rows, cols, 3))  # Asegúrate de que la tercera dimensión sea 3 para canales RGB
+    zero_matrix = np.zeros((max_frames - rows, cols))
     return np.concatenate((img_features, zero_matrix), axis=0)
-
-def predict_via_HTTP(video_to_predict, model_name, model_version, port):
-    frames = read_video(video_to_predict)
-    img_features = conv_feature_image(frames)
-    img_features_resized = resize_zeros(img_features, max_frames=190)
-
-    # Model parameters and prediction via HTTP logic here
-    test_images = np.expand_dims(img_features_resized, axis=0)  # Corregido para incluir todas las imágenes
-    test_images = test_images.astype('float32')
-
-    data = json.dumps({"signature_name": "serving_default", "instances": test_images.tolist()})
-    headers = {"content-type": "application/json"}
-    uri = f'http://127.0.0.1:{port}/v{model_version}/models/{model_name}:predict'
-
-    json_response = requests.post(uri, data=data, headers=headers)
-    predictions = json.loads(json_response.text)['predictions'][0]
-
-    return predictions
 
 @app.post("/model/predict/")
 async def predict(file: UploadFile = File(...)):
     try:
-        # Save video file
+        # Obtener el archivo de video desde la solicitud
         contents = await file.read()
-        video_path = f"{UPLOAD_FOLDER}/{file.filename}"
+
+        # Guardar el archivo en disco
+        video_path = "uploads/videos/" + file.filename
         with open(video_path, 'wb') as f:
             f.write(contents)
 
-        # Model parameters
-        model_name = 'violencia'  # Replace with your model name
-        model_version = '1'  # Replace with your model version
-        port_HTTP = '9501'  # Replace with the correct port
+        # Procesar el video
+        frames = read_video(video_path)
+        img_features = conv_feature_image(frames)
+        img_features_resized = resize_zeros(img_features, 190)
 
-        # Make prediction
-        predictions = predict_via_HTTP(video_path, model_name, model_version, port_HTTP)
+        # Convertir frames a formato JSON
+        frames_json = convert_frames_to_json(np.array([img_features_resized]))
 
-        # Process results
-        index = np.argmax(predictions)
-        classes = [0, 1]  # Adjust according to your model classes
-        label = classes[index]
-        score = predictions[index]
+        # Enviar solicitud a TensorFlow Serving
+        model_name = 'violencia'  # Reemplaza con el nombre de tu modelo
+        model_version = '1'  # Reemplaza con la versión de tu modelo
+        port = '9501'  # Reemplaza con el puerto de tu servidor TensorFlow Serving
 
-        # Build JSON response
-        response = {
-            "predictions": [{"label": label, "score": float(score)}]
-        }
+        uri = f'http://127.0.0.1:{port}/v{model_version}/models/{model_name}:predict'
+        headers = {"content-type": "application/json"}
+        response = requests.post(uri, data=frames_json, headers=headers)
 
-        return JSONResponse(content=response, status_code=200)
+        # Obtener la predicción del resultado
+        predictions = response.json()['predictions']
+
+        # Definir umbral de decisión
+        threshold = 0.5
+
+        # Clasificar la predicción
+        label = "violencia" if predictions[0] >= threshold else "no_violento"
+        score = float(predictions[0])
+
+        response_data = {"prediction": score, "label": label}
+
+        return JSONResponse(content=response_data, status_code=200)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
