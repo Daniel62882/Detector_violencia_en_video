@@ -56,7 +56,7 @@ async def predict(file: UploadFile = File(...)):
         # Enviar solicitud a TensorFlow Serving
         model_name = 'violencia'  # Reemplaza con el nombre de tu modelo
         model_version = '1'  # Reemplaza con la versión de tu modelo
-        port = '8501'  # Reemplaza con el puerto de tu servidor TensorFlow Serving
+        port = '9501'  # Reemplaza con el puerto de tu servidor TensorFlow Serving
 
         uri = f'http://127.0.0.1:{port}/v{model_version}/models/{model_name}:predict'
         headers = {"content-type": "application/json"}
