@@ -37,13 +37,13 @@ def resize_zeros(img_features, max_frames):
 def predict_via_HTTP(video_to_predict, model_name, model_version, port):
     frames = read_video(video_to_predict)
     img_features = conv_feature_image(frames)
-    img_features_resized = resize_zeros(img_features, max_frames=190)  # Asegúrate de que max_frames coincida con lo que espera el modelo
+    img_features_resized = resize_zeros(img_features, max_frames=190)
 
     # Model parameters and prediction via HTTP logic here
-    test_image = np.expand_dims(img_features_resized[0], axis=0)  # Asegúrate de que cada cuadro tenga la forma correcta
-    test_image = test_image.astype('float32')
+    test_images = np.expand_dims(img_features_resized, axis=0)  # Corregido para incluir todas las imágenes
+    test_images = test_images.astype('float32')
 
-    data = json.dumps({"signature_name": "serving_default", "instances": test_image.tolist()})
+    data = json.dumps({"signature_name": "serving_default", "instances": test_images.tolist()})
     headers = {"content-type": "application/json"}
     uri = f'http://127.0.0.1:{port}/v{model_version}/models/{model_name}:predict'
 
